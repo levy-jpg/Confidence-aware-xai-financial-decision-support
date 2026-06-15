@@ -92,7 +92,7 @@ def bootstrap_ci(group_a, group_b, iterations=2000, seed=42):
 
 
 def compare_static_adaptive(filtered, metrics):
-    """Build a dissertation-friendly Static vs Adaptive comparison table."""
+    """Build a Static vs Adaptive comparison table for results reporting."""
     rows = []
     static_rows = filtered[filtered["condition"] == "Static"]
     adaptive_rows = filtered[filtered["condition"] == "Adaptive"]

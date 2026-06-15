@@ -5,7 +5,7 @@ Student Number: G20893080
 
 ## Project Aim
 
-This artefact investigates how confidence-aware adaptation can change the presentation of explainable AI outputs in a financial decision-support context. The system compares a static explanation condition with an adaptive condition that changes explanation depth based on confidence signals.
+This project investigates how confidence-aware adaptation can change the presentation of explainable AI outputs in a financial decision-support context. The system compares a static explanation condition with an adaptive condition that changes explanation depth based on confidence signals.
 
 ## Dataset
 
@@ -48,7 +48,7 @@ The deployed Streamlit prototype uses:
 - workflow/review proxy for hover count
 - self-reported confidence rating
 
-Native Streamlit does not expose browser hover or scroll telemetry without a custom JavaScript component. For that reason, the app uses explicit review-confirmation checks as transparent proxies rather than hidden browser tracking. This is appropriate for an MSc prototype whose aim is to demonstrate confidence-aware adaptive XAI logic, not production-grade behavioural monitoring.
+Native Streamlit does not expose browser hover or scroll telemetry without a custom JavaScript component. For that reason, the app uses explicit review-confirmation checks as transparent proxies rather than hidden browser tracking. In this implementation, those values are used to demonstrate confidence-aware adaptive XAI logic rather than full behavioural monitoring.
 
 ## Response Data
 

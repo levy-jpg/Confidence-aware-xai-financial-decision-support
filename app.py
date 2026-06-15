@@ -1845,7 +1845,7 @@ if st.session_state.explanation_generated:
         st.info(
             "Methodology note: behavioural confidence is estimated using prototype interaction signals and "
             "review-confirmation proxies. This demonstrates adaptive explanation logic; it is not intended "
-            "to represent production-grade behavioural tracking."
+            "to represent full browser-based behavioural tracking."
         )
         confidence_inputs = st.session_state.get("confidence_feature_inputs", {})
         confidence_feature_table = pd.DataFrame({
