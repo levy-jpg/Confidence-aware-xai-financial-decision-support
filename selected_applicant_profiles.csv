@@ -1,0 +1,7 @@
+Profile ID,Profile Type,Dataset Index,Predicted Risk,Probability Bad Credit
+Applicant A,Low-risk example,654,Good Credit,7.955176988616586e-05
+Applicant B,Low-risk example,406,Good Credit,0.00010513632150832564
+Applicant C,High-risk example,307,Bad Credit,0.9987112283706665
+Applicant D,High-risk example,334,Bad Credit,0.998325526714325
+Applicant E,Borderline example,844,Good Credit,0.48232772946357727
+Applicant F,Borderline example,477,Bad Credit,0.5193596482276917
