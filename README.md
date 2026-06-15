@@ -23,6 +23,22 @@ models/                        # Trained model and preprocessing artefacts
 scripts/                       # Analysis and maintenance utilities
 ```
 
+## Dataset Source
+
+The credit-risk model uses the German Credit dataset from the UCI Machine Learning Repository. The app loads the original dataset at runtime from:
+
+```text
+https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data
+```
+
+Dataset information is available from UCI at:
+
+```text
+https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data
+```
+
+The repository includes curated applicant profiles for the user study in `data/selected_applicant_profiles.csv`, but it does not store the full original UCI dataset locally.
+
 ## Study Flow
 
 1. Review a predefined applicant profile.
