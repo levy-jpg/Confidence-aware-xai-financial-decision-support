@@ -1879,6 +1879,3 @@ if st.session_state.explanation_generated:
                 st.caption("Next case: choose another applicant profile from Step 1.")
             with next_cols[1]:
                 st.caption("Restart this case: use Reset current case in the sidebar.")
-
-
-# kdslfnsfnsdlfnsdlfn
