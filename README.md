@@ -62,6 +62,8 @@ Participant IDs are assigned automatically as anonymised codes such as `P001`, `
 
 Timing fields distinguish between `ai_prediction_review_time`, measured before the explanation is requested, and `explanation_reading_time`, measured after the explanation is shown and before the evaluation is submitted. The legacy `explanation_view_time` column is kept as the actual explanation-reading time for compatibility.
 
+The adaptive confidence model uses behavioural features from the trained confidence pipeline. Because native Streamlit does not expose browser hover or scroll telemetry without a custom component, the deployed prototype records transparent workflow/review proxies for `scroll_depth` and `hover_count` rather than hidden browser tracking.
+
 ## Study Tools
 
 The sidebar includes an optional anonymised participant ID, explanation condition guidance, study progress, a system status panel, and a download button for saved responses.
@@ -86,7 +88,7 @@ For a visual dashboard, run:
 streamlit run scripts/analysis_dashboard.py
 ```
 
-The dashboard plots condition-level ratings, explanation depth, AI agreement, and raw responses.
+The dashboard plots condition-level ratings, explanation depth, AI agreement, raw responses, and Static-vs-Adaptive comparison statistics including mean differences, bootstrapped confidence intervals, Cohen's d, and Mann-Whitney p-values.
 
 ## Reset Responses
 

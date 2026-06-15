@@ -4,10 +4,17 @@ Author: Levy Thiga Kariuki
 Student Number: G20893080
 """
 
+import math
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
+
+try:
+    from scipy import stats
+except ImportError:
+    stats = None
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -30,6 +37,8 @@ def load_responses():
         "ai_prediction_review_time",
         "explanation_reading_time",
         "explanation_view_time",
+        "confidence_scroll_depth_proxy",
+        "confidence_hover_count_proxy",
         "interaction_count",
         "user_confidence",
     ]:
@@ -45,6 +54,79 @@ def load_responses():
         responses["participant_id"] = responses["participant_id"].fillna("").astype(str)
 
     return responses
+
+
+def cohen_d(group_a, group_b):
+    """Return Cohen's d for two independent groups."""
+    group_a = pd.Series(group_a).dropna().astype(float)
+    group_b = pd.Series(group_b).dropna().astype(float)
+    if len(group_a) < 2 or len(group_b) < 2:
+        return np.nan
+
+    pooled_variance = (
+        ((len(group_a) - 1) * group_a.var(ddof=1))
+        + ((len(group_b) - 1) * group_b.var(ddof=1))
+    ) / (len(group_a) + len(group_b) - 2)
+
+    if pooled_variance <= 0:
+        return 0.0
+    return (group_b.mean() - group_a.mean()) / math.sqrt(pooled_variance)
+
+
+def bootstrap_ci(group_a, group_b, iterations=2000, seed=42):
+    """Estimate a 95% bootstrap CI for the Adaptive minus Static mean difference."""
+    group_a = pd.Series(group_a).dropna().astype(float).to_numpy()
+    group_b = pd.Series(group_b).dropna().astype(float).to_numpy()
+    if len(group_a) == 0 or len(group_b) == 0:
+        return np.nan, np.nan
+
+    rng = np.random.default_rng(seed)
+    differences = []
+    for _ in range(iterations):
+        sample_a = rng.choice(group_a, size=len(group_a), replace=True)
+        sample_b = rng.choice(group_b, size=len(group_b), replace=True)
+        differences.append(sample_b.mean() - sample_a.mean())
+
+    lower, upper = np.percentile(differences, [2.5, 97.5])
+    return lower, upper
+
+
+def compare_static_adaptive(filtered, metrics):
+    """Build a dissertation-friendly Static vs Adaptive comparison table."""
+    rows = []
+    static_rows = filtered[filtered["condition"] == "Static"]
+    adaptive_rows = filtered[filtered["condition"] == "Adaptive"]
+
+    for metric in metrics:
+        static_values = static_rows[metric].dropna().astype(float)
+        adaptive_values = adaptive_rows[metric].dropna().astype(float)
+        if static_values.empty or adaptive_values.empty:
+            continue
+
+        mean_difference = adaptive_values.mean() - static_values.mean()
+        ci_low, ci_high = bootstrap_ci(static_values, adaptive_values)
+        p_value = np.nan
+        if stats is not None and len(static_values) >= 2 and len(adaptive_values) >= 2:
+            p_value = stats.mannwhitneyu(
+                static_values,
+                adaptive_values,
+                alternative="two-sided",
+            ).pvalue
+
+        rows.append({
+            "Metric": metric,
+            "Static n": len(static_values),
+            "Adaptive n": len(adaptive_values),
+            "Static mean": round(static_values.mean(), 2),
+            "Adaptive mean": round(adaptive_values.mean(), 2),
+            "Mean difference": round(mean_difference, 2),
+            "95% CI lower": round(ci_low, 2) if not np.isnan(ci_low) else np.nan,
+            "95% CI upper": round(ci_high, 2) if not np.isnan(ci_high) else np.nan,
+            "Cohen d": round(cohen_d(static_values, adaptive_values), 2),
+            "Mann-Whitney p": round(p_value, 4) if not np.isnan(p_value) else "Install scipy",
+        })
+
+    return pd.DataFrame(rows)
 
 
 st.set_page_config(
@@ -97,8 +179,8 @@ with summary_cols[4]:
 
 st.divider()
 
-tab_overview, tab_ratings, tab_behaviour, tab_raw = st.tabs(
-    ["Overview", "Ratings", "Behaviour & Depth", "Raw Data"]
+tab_overview, tab_ratings, tab_comparison, tab_behaviour, tab_raw = st.tabs(
+    ["Overview", "Ratings", "Static vs Adaptive", "Behaviour & Depth", "Raw Data"]
 )
 
 with tab_overview:
@@ -131,6 +213,22 @@ with tab_ratings:
     else:
         st.info("No rating columns are available in the response file.")
 
+with tab_comparison:
+    available_metrics = [metric for metric in RATING_METRICS if metric in filtered.columns]
+    if {"Static", "Adaptive"}.issubset(set(filtered["condition"].dropna())) and available_metrics:
+        st.subheader("Static vs Adaptive Rating Comparison")
+        comparison_table = compare_static_adaptive(filtered, available_metrics)
+        if comparison_table.empty:
+            st.info("There is not enough rating data to compare the two conditions yet.")
+        else:
+            st.dataframe(comparison_table, use_container_width=True)
+            st.caption(
+                "Mean difference is Adaptive minus Static. Confidence intervals are bootstrapped. "
+                "Mann-Whitney p-values are suitable for small ordinal rating samples, but should be interpreted cautiously."
+            )
+    else:
+        st.info("Collect responses in both Static and Adaptive conditions before running this comparison.")
+
 with tab_behaviour:
     if "top_features_shown" in filtered.columns:
         st.subheader("Explanation Depth by Condition")
@@ -143,6 +241,8 @@ with tab_behaviour:
             "ai_prediction_review_time",
             "explanation_reading_time",
             "explanation_view_time",
+            "confidence_scroll_depth_proxy",
+            "confidence_hover_count_proxy",
             "interaction_count",
         ]
         if col in filtered.columns

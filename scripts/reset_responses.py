@@ -32,6 +32,8 @@ RESPONSE_COLUMNS = [
     "ai_prediction_review_time",
     "explanation_reading_time",
     "explanation_view_time",
+    "confidence_scroll_depth_proxy",
+    "confidence_hover_count_proxy",
     "predicted_confidence",
     "reported_confidence_level",
     "adaptation_signal",

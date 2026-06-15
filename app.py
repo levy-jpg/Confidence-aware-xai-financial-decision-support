@@ -48,6 +48,8 @@ RESPONSE_COLUMNS = [
     "ai_prediction_review_time",
     "explanation_reading_time",
     "explanation_view_time",
+    "confidence_scroll_depth_proxy",
+    "confidence_hover_count_proxy",
     "predicted_confidence",
     "reported_confidence_level",
     "adaptation_signal",
@@ -721,6 +723,8 @@ def initialise_session_state():
         "adaptation_trace": "",
         "confidence_feature_inputs": {},
         "confidence_features_used": confidence_feature_names,
+        "reviewed_profile_before_explanation": False,
+        "compared_ai_prediction_before_explanation": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -745,6 +749,8 @@ def reset_case_state():
     st.session_state.adaptation_trace = ""
     st.session_state.confidence_feature_inputs = {}
     st.session_state.confidence_features_used = confidence_feature_names
+    st.session_state.reviewed_profile_before_explanation = False
+    st.session_state.compared_ai_prediction_before_explanation = False
 
 
 def start_new_participant():
@@ -812,6 +818,19 @@ def build_confidence_input(feature_values):
         for feature_name in confidence_feature_names
     }
     return pd.DataFrame(ordered_values, columns=confidence_feature_names)
+
+
+def estimate_confidence_behaviour_signals(click_count, profile_reviewed, ai_compared):
+    """Estimate Streamlit-compatible behavioural proxies for the confidence model.
+
+    Native Streamlit does not expose browser hover or scroll telemetry without a
+    custom component. These values therefore use observable workflow progress
+    and participant-confirmed review actions instead of fixed constants.
+    """
+    review_actions = int(profile_reviewed) + int(ai_compared)
+    scroll_depth_proxy = min(1.0, 0.5 + (0.2 * review_actions))
+    hover_count_proxy = click_count + review_actions
+    return round(scroll_depth_proxy, 2), int(hover_count_proxy)
 
 
 def predict_user_confidence(input_df):
@@ -1136,14 +1155,16 @@ def render_consent_intro():
     with st.container(border=True):
         st.markdown("**Before You Begin**")
         st.write("This is a simulated financial decision-support task using predefined dataset profiles.")
+        st.write("The task does not involve real lending decisions and will not affect any real person, account, or financial outcome.")
         st.write("No real personal financial data is collected or processed.")
         st.write("Responses are stored for dissertation analysis and are anonymised using a participant ID rather than a real name.")
         st.write("A participant ID will be assigned to you at the start of the study.")
+        st.write("Participation is voluntary. You may stop before submitting your evaluation response if you do not wish to continue.")
         st.write("The AI prediction is for research purposes only and must not be treated as real lending or financial advice.")
         st.write("Select between static and adaptive explanation modes.")
 
         consent_checked = st.checkbox(
-            "I understand this is a simulated study and consent to my anonymised responses being recorded.",
+            "I understand this is a simulated, voluntary study and consent to my anonymised responses being recorded for dissertation analysis.",
             key="consent_checkbox",
         )
 
@@ -1678,6 +1699,23 @@ if st.session_state.submitted_initial:
     render_decision_comparison(st.session_state.user_prediction, ai_label, probability_bad)
     render_risk_meter(probability_bad)
 
+    with st.container(border=True):
+        st.markdown("**Review checks**")
+        st.caption("These checks help the prototype estimate review behaviour before selecting the explanation depth.")
+        review_col, compare_col = st.columns(2)
+        with review_col:
+            profile_reviewed = st.checkbox(
+                "I reviewed the applicant details before requesting the explanation.",
+                key="reviewed_profile_before_explanation",
+                disabled=st.session_state.explanation_generated,
+            )
+        with compare_col:
+            ai_compared = st.checkbox(
+                "I compared my judgement with the AI prediction.",
+                key="compared_ai_prediction_before_explanation",
+                disabled=st.session_state.explanation_generated,
+            )
+
     generate_explanation = st.button(
         "Generate explanation",
         type="primary",
@@ -1693,8 +1731,11 @@ if st.session_state.submitted_initial:
 
         decision_time = st.session_state.decision_time
         click_count = st.session_state.interaction_count
-        scroll_depth = 0.5
-        hover_count = 0
+        scroll_depth, hover_count = estimate_confidence_behaviour_signals(
+            click_count,
+            st.session_state.reviewed_profile_before_explanation,
+            st.session_state.compared_ai_prediction_before_explanation,
+        )
         confidence_model_review_time = st.session_state.ai_prediction_review_time
 
         confidence_feature_values = {
@@ -1795,6 +1836,7 @@ if st.session_state.explanation_generated:
 
     with st.expander("Confidence model transparency", expanded=False):
         st.write("The adaptive condition estimates confidence using the full behavioural feature row expected by the trained confidence model.")
+        st.write("Because native Streamlit does not expose browser hover or scroll telemetry, scroll depth and hover count are represented as transparent workflow/review proxies rather than hidden browser tracking.")
         confidence_inputs = st.session_state.get("confidence_feature_inputs", {})
         confidence_feature_table = pd.DataFrame({
             "Feature used by confidence model": st.session_state.get("confidence_features_used", confidence_feature_names),
@@ -1868,6 +1910,8 @@ if st.session_state.explanation_generated:
             "ai_prediction_review_time": st.session_state.ai_prediction_review_time,
             "explanation_reading_time": explanation_reading_time,
             "explanation_view_time": explanation_reading_time,
+            "confidence_scroll_depth_proxy": st.session_state.confidence_feature_inputs.get("scroll_depth", 0.0),
+            "confidence_hover_count_proxy": st.session_state.confidence_feature_inputs.get("hover_count", 0.0),
             "predicted_confidence": st.session_state.predicted_confidence,
             "reported_confidence_level": st.session_state.reported_confidence_level,
             "adaptation_signal": st.session_state.applied_confidence_signal,
