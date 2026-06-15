@@ -80,13 +80,41 @@ The interface includes a condition badge, model confidence signal, user-versus-A
 
 ## Screenshots
 
-Suggested screenshots for reporting or README presentation can be saved in `docs/screenshots/`:
+Screenshots are stored in `docs/screenshots/` to show the participant workflow and explanation interface.
 
-- main participant-facing app screen
-- explanation section showing feature impacts
-- analysis dashboard comparison tab
+### Study Introduction
 
-Screenshots are optional and are not required for the app to run.
+![Study introduction screen](docs/screenshots/starting-page.png)
+
+### Applicant Review
+
+![Applicant profile review screen](docs/screenshots/review-applicant-profile.png)
+
+### Initial Judgement and AI Prediction
+
+![Initial judgement and AI prediction screen](docs/screenshots/submit-judgement-ai-prediction.png)
+
+### Explanation Interface
+
+![Explanation overview screen](docs/screenshots/explanation-page.png)
+
+![Feature impact explanation screen](docs/screenshots/feature-importance.png)
+
+### Adaptive Explanation Depth Examples
+
+![High confidence concise explanation example](docs/screenshots/high-confidence-feature-example.png)
+
+![Low confidence detailed explanation example](docs/screenshots/low-confidence-feature-example.png)
+
+### Confidence Model Transparency
+
+![Confidence model transparency screen](docs/screenshots/confidence-model-transparency.png)
+
+### Evaluation and Study Controls
+
+![Evaluation section screen](docs/screenshots/evaluation-section.png)
+
+![Sidebar reset and response export controls](docs/screenshots/sidebar-reset-export.png)
 
 ## Smoke Test
 
