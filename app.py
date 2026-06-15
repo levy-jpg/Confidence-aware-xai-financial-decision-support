@@ -1841,7 +1841,6 @@ if st.session_state.explanation_generated:
         )
 
     with st.expander("Confidence model transparency", expanded=False):
-        st.write("The adaptive condition estimates confidence using the full behavioural feature row expected by the trained confidence model.")
         st.write("Because native Streamlit does not expose browser hover or scroll telemetry, scroll depth and hover count are represented as transparent workflow/review proxies rather than hidden browser tracking.")
         st.info(
             "Methodology note: behavioural confidence is estimated using prototype interaction signals and "
