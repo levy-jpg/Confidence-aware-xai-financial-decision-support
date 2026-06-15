@@ -82,7 +82,11 @@ The interface includes a condition badge, model confidence signal, user-versus-A
 
 Screenshots are stored in `docs/screenshots/` to show the participant workflow and explanation interface.
 
-### Study Introduction
+### Ethics and Consent
+
+![Ethics and consent screen](docs/screenshots/ethics.png)
+
+### Introduction (Select Static or Adaptive)
 
 ![Study introduction screen](docs/screenshots/starting-page.png)
 
