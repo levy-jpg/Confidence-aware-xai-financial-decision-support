@@ -1,9 +1,10 @@
-import os
+from pathlib import Path
 
 import pandas as pd
 
 
-RESPONSE_FILE = "user_study_responses.csv"
+BASE_DIR = Path(__file__).resolve().parents[1]
+RESPONSE_FILE = BASE_DIR / "data" / "responses" / "user_study_responses.csv"
 METRICS = ["trust", "understanding", "usefulness", "reliance"]
 
 
@@ -31,7 +32,7 @@ def load_responses():
 
 
 def main():
-    if not os.path.exists(RESPONSE_FILE):
+    if not RESPONSE_FILE.exists():
         print(f"No response file found: {RESPONSE_FILE}")
         return
 

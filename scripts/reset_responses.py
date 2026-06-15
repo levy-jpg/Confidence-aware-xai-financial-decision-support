@@ -1,12 +1,13 @@
-import os
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 
 
-RESPONSE_FILE = "user_study_responses.csv"
-BACKUP_DIR = "response_backups"
+BASE_DIR = Path(__file__).resolve().parents[1]
+RESPONSE_FILE = BASE_DIR / "data" / "responses" / "user_study_responses.csv"
+BACKUP_DIR = BASE_DIR / "data" / "response_backups"
 RESPONSE_COLUMNS = [
     "timestamp",
     "session_id",
@@ -39,10 +40,12 @@ RESPONSE_COLUMNS = [
 
 
 def main():
-    if os.path.exists(RESPONSE_FILE):
-        os.makedirs(BACKUP_DIR, exist_ok=True)
+    RESPONSE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    if RESPONSE_FILE.exists():
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup_path = os.path.join(BACKUP_DIR, f"user_study_responses_{timestamp}.csv")
+        backup_path = BACKUP_DIR / f"user_study_responses_{timestamp}.csv"
         shutil.copy2(RESPONSE_FILE, backup_path)
         print(f"Backed up existing responses to: {backup_path}")
     else:

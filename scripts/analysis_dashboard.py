@@ -1,15 +1,16 @@
-import os
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 
-RESPONSE_FILE = "user_study_responses.csv"
+BASE_DIR = Path(__file__).resolve().parents[1]
+RESPONSE_FILE = BASE_DIR / "data" / "responses" / "user_study_responses.csv"
 RATING_METRICS = ["trust", "understanding", "usefulness", "reliance"]
 
 
 def load_responses():
-    if not os.path.exists(RESPONSE_FILE):
+    if not RESPONSE_FILE.exists():
         return None
 
     responses = pd.read_csv(RESPONSE_FILE)

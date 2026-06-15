@@ -5,4 +5,8 @@ __pycache__/
 .vscode/
 
 user_study_responses.csv
+data/responses/*.csv
+data/response_backups/*.csv
+!data/responses/.gitkeep
+!data/response_backups/.gitkeep
 *.bak

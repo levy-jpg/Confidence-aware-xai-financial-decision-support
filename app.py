@@ -1,8 +1,8 @@
-import os
 import time
 import base64
 from datetime import datetime
 from html import escape
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -11,8 +11,11 @@ import shap
 import streamlit as st
 
 
-RESPONSE_FILE = "user_study_responses.csv"
-CONFIDENCE_TRAINING_FILE = "simulated_behavioural_confidence_data.csv"
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+MODELS_DIR = BASE_DIR / "models"
+RESPONSE_FILE = DATA_DIR / "responses" / "user_study_responses.csv"
+CONFIDENCE_TRAINING_FILE = DATA_DIR / "simulated_behavioural_confidence_data.csv"
 CONFIDENCE_TARGET_COLUMN = "confidence_level"
 FALLBACK_CONFIDENCE_FEATURES = [
     "decision_time",
@@ -461,18 +464,18 @@ st.markdown(
 def load_models():
     """Load trained models and preprocessing objects once per Streamlit session."""
     return (
-        joblib.load("xgboost_credit_model.pkl"),
-        joblib.load("label_encoders.pkl"),
-        joblib.load("confidence_model.pkl"),
-        joblib.load("confidence_scaler.pkl"),
-        joblib.load("confidence_label_encoder.pkl"),
+        joblib.load(MODELS_DIR / "xgboost_credit_model.pkl"),
+        joblib.load(MODELS_DIR / "label_encoders.pkl"),
+        joblib.load(MODELS_DIR / "confidence_model.pkl"),
+        joblib.load(MODELS_DIR / "confidence_scaler.pkl"),
+        joblib.load(MODELS_DIR / "confidence_label_encoder.pkl"),
     )
 
 
 @st.cache_data
 def load_profiles():
     """Load the curated applicant profiles used in the user study."""
-    return pd.read_csv("selected_applicant_profiles.csv")
+    return pd.read_csv(DATA_DIR / "selected_applicant_profiles.csv")
 
 
 @st.cache_data
@@ -511,7 +514,7 @@ def get_confidence_feature_names():
         if feature_names is not None:
             return list(feature_names)
 
-    if os.path.exists(CONFIDENCE_TRAINING_FILE):
+    if CONFIDENCE_TRAINING_FILE.exists():
         training_columns = pd.read_csv(CONFIDENCE_TRAINING_FILE, nrows=0).columns.tolist()
         feature_columns = [
             column for column in training_columns
@@ -927,7 +930,8 @@ def get_next_participant_id(file_path=RESPONSE_FILE, current_participant_id=None
     if current_number is not None:
         numeric_ids.append(current_number)
 
-    if not os.path.exists(file_path):
+    file_path = Path(file_path)
+    if not file_path.exists():
         next_number = max(numeric_ids) + 1 if numeric_ids else 1
         return f"P{next_number:03d}"
 
@@ -965,7 +969,8 @@ def get_model_confidence_badge(probability_bad):
 
 def get_response_counts(file_path=RESPONSE_FILE):
     """Return lightweight response counts for the sidebar."""
-    if not os.path.exists(file_path):
+    file_path = Path(file_path)
+    if not file_path.exists():
         return {"total": 0, "static": 0, "adaptive": 0}
 
     try:
@@ -986,10 +991,12 @@ def get_response_counts(file_path=RESPONSE_FILE):
 
 def append_study_response(response, file_path=RESPONSE_FILE):
     """Append one response while preserving older rows if the schema expands."""
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     ordered_columns = list(dict.fromkeys(RESPONSE_COLUMNS + list(response.keys())))
     new_response = pd.DataFrame([response]).reindex(columns=ordered_columns)
 
-    if os.path.exists(file_path):
+    if file_path.exists():
         existing = pd.read_csv(file_path)
         combined_columns = list(dict.fromkeys(RESPONSE_COLUMNS + list(existing.columns) + list(new_response.columns)))
         existing = existing.reindex(columns=combined_columns)
@@ -1001,10 +1008,11 @@ def append_study_response(response, file_path=RESPONSE_FILE):
 
 def get_response_file_bytes(file_path=RESPONSE_FILE):
     """Return saved response data for the sidebar download button."""
-    if not os.path.exists(file_path):
+    file_path = Path(file_path)
+    if not file_path.exists():
         return None
 
-    with open(file_path, "rb") as response_file:
+    with file_path.open("rb") as response_file:
         return response_file.read()
 
 
@@ -1486,7 +1494,7 @@ def render_sidebar(condition):
         render_sidebar_download(
             "Download responses",
             response_data,
-            "user_study_responses.csv",
+            "data-responses-user_study_responses.csv",
             "sidebar-green",
         )
 
@@ -1496,13 +1504,13 @@ def render_sidebar(condition):
         st.write(f"[x] Profiles loaded: {len(profiles)}")
         st.write(f"[x] Dataset rows: {len(X)}")
         st.write("[x] Explanations ready")
-        response_status = "available" if os.path.exists(RESPONSE_FILE) else "not created yet"
+        response_status = "available" if RESPONSE_FILE.exists() else "not created yet"
         st.write(f"Responses file: {response_status}")
 
     with st.sidebar.expander("Analysis Tools", expanded=False):
-        st.code("streamlit run analysis_dashboard.py")
-        st.code("py analysis_summary.py")
-        st.caption("Use reset_responses.py only when you deliberately want to archive and clear the CSV.")
+        st.code("streamlit run scripts/analysis_dashboard.py")
+        st.code("py scripts/analysis_summary.py")
+        st.caption("Use scripts/reset_responses.py only when you deliberately want to archive and clear the CSV.")
 
 
 # ---------------------------------------------------------------------------

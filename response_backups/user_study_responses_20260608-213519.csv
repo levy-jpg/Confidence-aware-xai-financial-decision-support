@@ -1,9 +1,0 @@
-timestamp,session_id,participant_id,profile_id,dataset_index,profile_type,condition,user_prediction,user_confidence,ai_prediction,probability_bad_credit,user_agreed_with_ai,decision_time,interaction_count,explanation_view_time,predicted_confidence,reported_confidence_level,adaptation_signal,explanation_depth,top_features_shown,trust,understanding,usefulness,reliance,comments
-2026-06-08T21:22:29,20260608-212109,P001,Applicant E,844,Borderline example,Static,Good Credit,4,Good Credit,0.4823277294635772,True,6.24,2,33.26,high,high,Not applied,Standard,5,5,5,5,5,kgjvkjvjvjkgvjkhvh
-2026-06-08T21:23:25,20260608-212109,P001,Applicant E,844,Borderline example,Adaptive,Good Credit,4,Good Credit,0.4823277294635772,True,12.96,2,2.26,high,high,High,Concise,2,3,3,3,3,kgkjhkkhvjv
-2026-06-08T21:24:04,20260608-212109,P001,Applicant B,406,Low-risk example,Adaptive,Good Credit,4,Good Credit,0.0001051363215083,True,2.96,2,2.42,high,high,High,Concise,2,3,3,3,3,kjvhjvhjvhjvhjvkjhvk
-2026-06-08T21:30:03,20260608-212903,P002,Applicant A,654,Low-risk example,Adaptive,Good Credit,4,Good Credit,7.955176988616586e-05,True,35.43,2,3.4,high,high,High,Concise,2,3,3,3,3,
-2026-06-08T21:31:17,20260608-212903,P002,Applicant C,307,High-risk example,Adaptive,Good Credit,4,Bad Credit,0.9987112283706664,False,5.41,2,5.99,high,high,High,Concise,2,3,3,3,3,jhvkjvhjvhkvhv
-2026-06-08T21:32:08,20260608-212903,P002,Applicant C,307,High-risk example,Adaptive,Good Credit,4,Bad Credit,0.9987112283706664,False,0.05,2,2.96,high,high,High,Concise,2,3,3,3,3,
-2026-06-08T21:32:24,20260608-212903,P002,Applicant C,307,High-risk example,Adaptive,Bad Credit,4,Bad Credit,0.9987112283706664,True,0.78,2,1.57,high,high,High,Concise,2,3,3,3,3,
-2026-06-08T21:33:26,20260608-212903,P002,Applicant D,334,High-risk example,Adaptive,Good Credit,3,Bad Credit,0.998325526714325,False,23.98,2,5.87,high,medium,Medium,Moderate,4,3,3,3,3,"oiyglgkbklbb.n,bmbm,b"

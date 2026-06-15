@@ -10,6 +10,19 @@ The app uses a trained XGBoost credit-risk model, SHAP-style local feature contr
 streamlit run app.py
 ```
 
+## Project Structure
+
+```text
+app.py                         # Main Streamlit participant-facing prototype
+data/                          # Study data and response storage
+  selected_applicant_profiles.csv
+  simulated_behavioural_confidence_data.csv
+  responses/                   # Local response CSVs are ignored by Git
+  response_backups/            # Local reset backups are ignored by Git
+models/                        # Trained model and preprocessing artefacts
+scripts/                       # Analysis and maintenance utilities
+```
+
 ## Study Flow
 
 1. Review a predefined applicant profile.
@@ -26,7 +39,7 @@ streamlit run app.py
   - Medium confidence: moderate explanation.
   - High confidence: concise explanation.
 
-Responses are saved to `user_study_responses.csv`.
+Responses are saved to `data/responses/user_study_responses.csv`.
 
 Participant IDs are assigned automatically as anonymised codes such as `P001`, `P002`, and so on. The same ID should be used for all cases completed by one participant. Use the sidebar `Start new participant` button when a new person begins the study.
 
@@ -45,7 +58,7 @@ The interface includes a condition badge, model confidence signal, user-versus-A
 After collecting responses, run:
 
 ```bash
-python analysis_summary.py
+python scripts/analysis_summary.py
 ```
 
 This prints response counts and mean trust, understanding, usefulness, and reliance scores by condition.
@@ -53,7 +66,7 @@ This prints response counts and mean trust, understanding, usefulness, and relia
 For a visual dashboard, run:
 
 ```bash
-streamlit run analysis_dashboard.py
+streamlit run scripts/analysis_dashboard.py
 ```
 
 The dashboard plots condition-level ratings, explanation depth, AI agreement, and raw responses.
@@ -63,7 +76,7 @@ The dashboard plots condition-level ratings, explanation depth, AI agreement, an
 Do not reset responses from the participant-facing app. To clear the CSV deliberately, run:
 
 ```bash
-python reset_responses.py
+python scripts/reset_responses.py
 ```
 
-The script backs up the current CSV into `response_backups/` first, then recreates `user_study_responses.csv` with clean headers.
+The script backs up the current CSV into `data/response_backups/` first, then recreates `data/responses/user_study_responses.csv` with clean headers.
