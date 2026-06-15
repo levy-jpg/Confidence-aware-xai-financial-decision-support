@@ -15,10 +15,12 @@ streamlit run app.py
 ```text
 app.py                         # Main Streamlit participant-facing prototype
 data/                          # Study data and response storage
+  raw/german.data              # Local fallback copy of the UCI German Credit data
   selected_applicant_profiles.csv
   simulated_behavioural_confidence_data.csv
   responses/                   # Local response CSVs are ignored by Git
   response_backups/            # Local reset backups are ignored by Git
+docs/                          # Methodology notes and optional screenshots
 models/                        # Trained model and preprocessing artefacts
 notebooks/                     # Original model-development notebooks
 scripts/                       # Analysis and maintenance utilities
@@ -38,7 +40,11 @@ Dataset information is available from UCI at:
 https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data
 ```
 
-The repository includes curated applicant profiles for the user study in `data/selected_applicant_profiles.csv`, but it does not store the full original UCI dataset locally.
+The repository includes curated applicant profiles for the user study in `data/selected_applicant_profiles.csv`. It also includes a local fallback copy of the original UCI data at `data/raw/german.data` so the app can still run if the online source is unavailable.
+
+## Methodology Notes
+
+Additional methodology notes are available in `docs/methodology_notes.md`. These notes summarise the dataset source, model pipeline, confidence-model scope, response fields, analysis approach, and ethical framing.
 
 ## Study Flow
 
@@ -71,6 +77,26 @@ The sidebar includes an optional anonymised participant ID, explanation conditio
 The app also starts with a short consent/introduction screen explaining that the task is simulated, uses predefined profiles, and does not collect real financial data.
 
 The interface includes a condition badge, model confidence signal, user-versus-AI comparison panel, and explanation-depth indicator to make the adaptive behaviour visible during testing.
+
+## Screenshots
+
+Suggested screenshots for reporting or README presentation can be saved in `docs/screenshots/`:
+
+- main participant-facing app screen
+- explanation section showing feature impacts
+- analysis dashboard comparison tab
+
+Screenshots are optional and are not required for the app to run.
+
+## Smoke Test
+
+Before a demo or submission check, run:
+
+```bash
+python scripts/smoke_test.py
+```
+
+The smoke test verifies that the main app files, model artefacts, dataset files, notebooks, methodology notes, and response schema are present.
 
 ## Quick Analysis
 

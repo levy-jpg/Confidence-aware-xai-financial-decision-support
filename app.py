@@ -20,8 +20,11 @@ import streamlit as st
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "models"
+RAW_DATA_DIR = DATA_DIR / "raw"
 RESPONSE_FILE = DATA_DIR / "responses" / "user_study_responses.csv"
 CONFIDENCE_TRAINING_FILE = DATA_DIR / "simulated_behavioural_confidence_data.csv"
+GERMAN_CREDIT_URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
+LOCAL_GERMAN_CREDIT_FILE = RAW_DATA_DIR / "german.data"
 CONFIDENCE_TARGET_COLUMN = "confidence_level"
 FALLBACK_CONFIDENCE_FEATURES = [
     "decision_time",
@@ -489,7 +492,6 @@ def load_profiles():
 @st.cache_data
 def load_dataset():
     """Load and encode the German Credit dataset to match the trained model."""
-    url = "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
     columns = [
         "checking_account_status", "duration_months", "credit_history", "purpose",
         "credit_amount", "savings_account", "employment_since", "installment_rate",
@@ -498,7 +500,11 @@ def load_dataset():
         "people_liable", "telephone", "foreign_worker", "target",
     ]
 
-    df = pd.read_csv(url, sep=" ", names=columns)
+    try:
+        df = pd.read_csv(GERMAN_CREDIT_URL, sep=" ", names=columns)
+    except Exception:
+        df = pd.read_csv(LOCAL_GERMAN_CREDIT_FILE, sep=" ", names=columns)
+
     df["target"] = df["target"].map({1: 0, 2: 1})
 
     model_df = df.copy()
@@ -1837,6 +1843,11 @@ if st.session_state.explanation_generated:
     with st.expander("Confidence model transparency", expanded=False):
         st.write("The adaptive condition estimates confidence using the full behavioural feature row expected by the trained confidence model.")
         st.write("Because native Streamlit does not expose browser hover or scroll telemetry, scroll depth and hover count are represented as transparent workflow/review proxies rather than hidden browser tracking.")
+        st.info(
+            "Methodology note: behavioural confidence is estimated using prototype interaction signals and "
+            "review-confirmation proxies. This demonstrates adaptive explanation logic; it is not intended "
+            "to represent production-grade behavioural tracking."
+        )
         confidence_inputs = st.session_state.get("confidence_feature_inputs", {})
         confidence_feature_table = pd.DataFrame({
             "Feature used by confidence model": st.session_state.get("confidence_features_used", confidence_feature_names),
