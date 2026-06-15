@@ -122,8 +122,6 @@ Screenshots are stored in `docs/screenshots/` to show the participant workflow a
 
 ## Smoke Test
 
-Before a demo or submission check, run:
-
 ```bash
 python scripts/smoke_test.py
 ```
