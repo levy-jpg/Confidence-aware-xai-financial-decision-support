@@ -20,6 +20,7 @@ data/                          # Study data and response storage
   responses/                   # Local response CSVs are ignored by Git
   response_backups/            # Local reset backups are ignored by Git
 models/                        # Trained model and preprocessing artefacts
+notebooks/                     # Original model-development notebooks
 scripts/                       # Analysis and maintenance utilities
 ```
 

@@ -1,3 +1,9 @@
+"""
+Response reset utility for the Confidence-Aware XAI user study.
+Author: Levy Thiga Kariuki
+Student Number: G20893080
+"""
+
 import shutil
 from datetime import datetime
 from pathlib import Path

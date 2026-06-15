@@ -1,3 +1,9 @@
+"""
+Visual analysis dashboard for the Confidence-Aware XAI user study.
+Author: Levy Thiga Kariuki
+Student Number: G20893080
+"""
+
 from pathlib import Path
 
 import pandas as pd

@@ -1,3 +1,9 @@
+"""
+Confidence-Aware XAI Streamlit Prototype
+Author: Levy Thiga Kariuki
+Student Number: G20893080
+"""
+
 import time
 import base64
 from datetime import datetime

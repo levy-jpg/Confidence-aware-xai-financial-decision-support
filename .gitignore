@@ -3,6 +3,8 @@ __pycache__/
 .env
 .venv/
 .vscode/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 user_study_responses.csv
 data/responses/*.csv
