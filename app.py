@@ -1475,7 +1475,7 @@ def render_sidebar(condition):
 
     st.sidebar.caption("Use one participant ID for all cases completed by the same person.")
 
-    render_sidebar_action("Start new participant", "new_participant", "sidebar-blue")
+    render_sidebar_action("Reset current case", "reset_case", "sidebar-red")
 
     st.sidebar.divider()
     st.sidebar.subheader("Explanation Mode")
@@ -1509,7 +1509,7 @@ def render_sidebar(condition):
         marker = "[x]" if complete else "[ ]"
         st.sidebar.write(f"{marker} {label}")
 
-    render_sidebar_action("Reset current case", "reset_case", "sidebar-red")
+    render_sidebar_action("Start new participant", "new_participant", "sidebar-blue")
 
     st.sidebar.divider()
     st.sidebar.subheader("Responses")
@@ -1889,7 +1889,7 @@ if st.session_state.explanation_generated:
         usefulness = st.slider("The explanation was useful.", 1, 5, 3)
         reliance = st.slider("I would rely on this AI recommendation.", 1, 5, 3)
 
-    comments = st.text_area("Any comments?")
+    comments = st.text_area("Please provide any comments about the explanation you received. For example, you may comment on its clarity, usefulness, level of detail, trustworthiness, or anything you found confusing.")
 
     submit_evaluation = st.button(
         "Submit evaluation",
