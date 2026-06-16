@@ -1451,7 +1451,7 @@ def render_explanation(explanation_df, style):
             else:
                 st.write(reason_sentence)
                 st.caption(
-                    "This is one contribution to the model prediction rather than as a standalone lending rule."
+                    "This is one contributing factor in the model's prediction and should not be interpreted as a standalone lending rule."
                 )
 
             st.progress(impact_pct)
