@@ -1614,7 +1614,7 @@ with st.container():
             render_profile(profile)
 
     with case_col:
-        render_metric("Profile type", selected_profile["Profile Type"])
+        render_metric("Applicant case", selected_profile_id)
         render_action_spacer()
         render_metric("Case source", "Dataset profile")
         render_action_spacer()
