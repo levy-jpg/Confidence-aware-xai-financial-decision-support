@@ -923,6 +923,12 @@ def apply_pending_profile_selection():
         st.session_state.profile_selector = pending_profile_id
 
 
+def apply_pending_case_reset():
+    """Apply a queued case reset before checkbox/selectbox widgets render."""
+    if st.session_state.pop("pending_case_reset", False):
+        reset_case_state()
+
+
 def get_adaptive_depth(confidence_level):
     """Map confidence level to explanation depth and presentation style."""
     if confidence_level == "low":
@@ -1649,6 +1655,7 @@ def render_sidebar(condition):
 initialise_session_state()
 repair_incomplete_explanation_state()
 handle_sidebar_actions()
+apply_pending_case_reset()
 apply_pending_profile_selection()
 
 selected_profile_for_condition = st.session_state.get("profile_selector", profiles["Profile ID"].iloc[0])
@@ -2065,7 +2072,7 @@ if st.session_state.explanation_generated:
                     use_container_width=True,
                 ):
                     st.session_state.pending_profile_id = next_profile_id
-                    reset_case_state()
+                    st.session_state.pending_case_reset = True
                     if hasattr(st, "rerun"):
                         st.rerun()
                     else:
