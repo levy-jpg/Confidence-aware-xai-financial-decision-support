@@ -714,7 +714,7 @@ def initialise_session_state():
     """Create all Streamlit session fields used across the study flow."""
     defaults = {
         "session_id": datetime.now().strftime("%Y%m%d-%H%M%S"),
-        "participant_id": get_next_participant_id(),
+        "participant_id": None,
         "consent_accepted": False,
         "start_time": time.time(),
         "interaction_count": 0,
@@ -736,8 +736,8 @@ def initialise_session_state():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    if not str(st.session_state.participant_id).strip():
-        st.session_state.participant_id = get_next_participant_id()
+    if st.session_state.participant_id is None or not str(st.session_state.participant_id).strip():
+        st.session_state.participant_id = get_current_participant_id()
 
 
 def reset_case_state():
@@ -986,6 +986,34 @@ def get_next_participant_id(file_path=RESPONSE_FILE, current_participant_id=None
         return "P001"
 
     return f"P{max(numeric_ids) + 1:03d}"
+
+
+def get_current_participant_id(file_path=RESPONSE_FILE):
+    """Return the latest existing participant ID without incrementing it."""
+    file_path = Path(file_path)
+    if not file_path.exists():
+        return "P001"
+
+    try:
+        responses = pd.read_csv(file_path)
+    except (pd.errors.EmptyDataError, ValueError):
+        return "P001"
+
+    if "participant_id" not in responses.columns:
+        return "P001"
+
+    numeric_ids = [
+        participant_number
+        for participant_number in (
+            get_participant_number(participant_id)
+            for participant_id in responses["participant_id"].dropna().astype(str)
+        )
+        if participant_number is not None
+    ]
+    if not numeric_ids:
+        return "P001"
+
+    return f"P{max(numeric_ids):03d}"
 
 
 def get_model_confidence_badge(probability_bad):
