@@ -5,6 +5,8 @@ Student Number: G20893080
 """
 
 import math
+import shutil
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +21,7 @@ except ImportError:
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 RESPONSE_FILE = BASE_DIR / "data" / "responses" / "user_study_responses.csv"
+BACKUP_DIR = BASE_DIR / "data" / "response_backups"
 RATING_METRICS = ["trust", "understanding", "usefulness", "reliance"]
 
 
@@ -129,6 +132,28 @@ def compare_static_adaptive(filtered, metrics):
     return pd.DataFrame(rows)
 
 
+def backup_response_file(reason="manual_row_delete"):
+    """Back up the full response CSV before any admin deletion."""
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = BACKUP_DIR / f"user_study_responses_{reason}_{timestamp}.csv"
+    shutil.copy2(RESPONSE_FILE, backup_path)
+    return backup_path
+
+
+def delete_response_rows(row_indices):
+    """Delete selected zero-based response rows from the stored CSV."""
+    stored_responses = pd.read_csv(RESPONSE_FILE)
+    valid_indices = [index for index in row_indices if index in stored_responses.index]
+    if not valid_indices:
+        return None, 0
+
+    backup_path = backup_response_file()
+    stored_responses = stored_responses.drop(index=valid_indices).reset_index(drop=True)
+    stored_responses.to_csv(RESPONSE_FILE, index=False)
+    return backup_path, len(valid_indices)
+
+
 st.set_page_config(
     page_title="Confidence-Aware XAI Study Dashboard",
     page_icon="DA",
@@ -193,6 +218,23 @@ with tab_overview:
         agreement_summary = filtered.groupby("condition")["user_agreed_with_ai"].mean().mul(100).round(1)
         st.bar_chart(agreement_summary)
         st.caption("Percentage of responses where the initial user judgement matched the AI prediction.")
+
+    if "participant_id" in filtered.columns:
+        st.subheader("Participant Completion Check")
+        participant_rows = (
+            filtered["participant_id"]
+            .replace("", pd.NA)
+            .dropna()
+            .value_counts()
+            .rename_axis("Participant ID")
+            .reset_index(name="Saved rows")
+            .sort_values("Participant ID")
+        )
+        if not participant_rows.empty:
+            participant_rows["Expected rows"] = 6
+            participant_rows["Complete"] = participant_rows["Saved rows"] == 6
+            st.dataframe(participant_rows, use_container_width=True)
+            st.caption("Each participant should have exactly six saved rows: Applicant A to Applicant F.")
 
 with tab_ratings:
     available_metrics = [metric for metric in RATING_METRICS if metric in filtered.columns]
@@ -260,7 +302,52 @@ with tab_behaviour:
 
 with tab_raw:
     st.subheader("Raw Responses")
-    st.dataframe(filtered, use_container_width=True)
+    raw_display = filtered.copy()
+    raw_display.insert(0, "csv_row_number", raw_display.index + 2)
+    st.dataframe(raw_display, use_container_width=True)
+
+    with st.expander("Remove invalid responses", expanded=False):
+        st.warning(
+            "Use this only for invalid test rows or responses where the participant did not follow the study procedure. "
+            "The full CSV is backed up before deletion."
+        )
+        deletion_options = [
+            f"CSV row {index + 2} | {row.get('participant_id', '')} | {row.get('profile_id', '')} | {row.get('condition', '')}"
+            for index, row in filtered.iterrows()
+        ]
+        option_to_index = {
+            option: index
+            for option, index in zip(deletion_options, filtered.index)
+        }
+
+        with st.form("delete_invalid_response_rows"):
+            selected_rows = st.multiselect(
+                "Select response rows to remove",
+                deletion_options,
+                help="CSV row numbers include the header row, matching spreadsheet view.",
+            )
+            confirmation = st.text_input(
+                "Type DELETE to confirm",
+                help="This prevents accidental deletion while reviewing data.",
+            )
+            delete_rows = st.form_submit_button("Delete selected rows")
+
+        if delete_rows:
+            if confirmation != "DELETE":
+                st.error("Rows were not deleted because the confirmation text did not match DELETE.")
+            elif not selected_rows:
+                st.error("No rows selected for deletion.")
+            else:
+                selected_indices = [option_to_index[option] for option in selected_rows]
+                backup_path, deleted_count = delete_response_rows(selected_indices)
+                if deleted_count:
+                    st.success(f"Deleted {deleted_count} row(s). Backup saved to: {backup_path}")
+                    if hasattr(st, "rerun"):
+                        st.rerun()
+                    else:
+                        st.experimental_rerun()
+                else:
+                    st.error("No matching stored rows were found to delete.")
 
     csv_data = filtered.to_csv(index=False).encode("utf-8")
     st.download_button(

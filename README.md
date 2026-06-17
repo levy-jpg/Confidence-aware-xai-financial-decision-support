@@ -46,6 +46,8 @@ The repository includes curated applicant profiles for the user study in `data/s
 
 Additional methodology notes are available in `docs/methodology_notes.md`. These notes summarise the dataset source, model pipeline, confidence-model scope, response fields, analysis approach, and ethical framing.
 
+The study operating procedure and counterbalanced participant patterns are summarised in `docs/study_design_summary.md`.
+
 ## Study Flow
 
 1. Review a predefined applicant profile.
@@ -61,6 +63,11 @@ Additional methodology notes are available in `docs/methodology_notes.md`. These
   - Low confidence: detailed explanation.
   - Medium confidence: moderate explanation.
   - High confidence: concise explanation.
+
+The app assigns Static or Adaptive automatically from the participant ID and applicant case to reduce study-procedure mistakes:
+
+- Pattern A for odd participant IDs: Applicant A Static, B Adaptive, C Static, D Adaptive, E Static, F Adaptive.
+- Pattern B for even participant IDs: Applicant A Adaptive, B Static, C Adaptive, D Static, E Adaptive, F Static.
 
 Responses are saved to `data/responses/user_study_responses.csv`.
 
@@ -145,6 +152,8 @@ streamlit run scripts/analysis_dashboard.py
 ```
 
 The dashboard plots condition-level ratings, explanation depth, AI agreement, raw responses, and Static-vs-Adaptive comparison statistics including mean differences, bootstrapped confidence intervals, Cohen's d, and Mann-Whitney p-values.
+
+The dashboard also includes an admin-only section under Raw Data for deleting invalid individual response rows. A full CSV backup is saved before any row deletion.
 
 ## Reset Responses
 

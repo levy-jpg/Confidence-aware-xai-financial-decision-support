@@ -864,6 +864,45 @@ def combine_confidence_signals(model_confidence, reported_confidence):
     return reverse_levels[min(model_level, reported_level)]
 
 
+def get_applicant_case_letter(profile_id):
+    """Extract the A-F case letter from labels such as Applicant A."""
+    profile_id = str(profile_id).strip()
+    if not profile_id:
+        return ""
+    return profile_id.split()[-1].upper()
+
+
+def get_study_pattern(participant_id):
+    """Return the counterbalanced condition pattern for this participant."""
+    participant_number = get_participant_number(participant_id)
+    if participant_number is not None and participant_number % 2 == 0:
+        return "Pattern B"
+    return "Pattern A"
+
+
+def get_assigned_condition(participant_id, profile_id):
+    """Assign Static/Adaptive using the study's A/B counterbalancing plan."""
+    case_letter = get_applicant_case_letter(profile_id)
+    pattern_a = {
+        "A": "Static",
+        "B": "Adaptive",
+        "C": "Static",
+        "D": "Adaptive",
+        "E": "Static",
+        "F": "Adaptive",
+    }
+    pattern_b = {
+        "A": "Adaptive",
+        "B": "Static",
+        "C": "Adaptive",
+        "D": "Static",
+        "E": "Adaptive",
+        "F": "Static",
+    }
+    pattern = pattern_b if get_study_pattern(participant_id) == "Pattern B" else pattern_a
+    return pattern.get(case_letter, "Static")
+
+
 def get_adaptive_depth(confidence_level):
     """Map confidence level to explanation depth and presentation style."""
     if confidence_level == "low":
@@ -1195,7 +1234,7 @@ def render_consent_intro():
         st.write("A participant ID will be assigned to you at the start of the study.")
         st.write("Participation is voluntary. You may stop before submitting your evaluation response if you do not wish to continue.")
         st.write("The AI prediction is for research purposes only and must not be treated as real lending or financial advice.")
-        st.write("Select between static and adaptive explanation modes.")
+        st.write("Static and adaptive explanation modes are assigned automatically from the study pattern.")
 
         consent_checked = st.checkbox(
             "I understand this is a simulated, voluntary study and consent to my anonymised responses being recorded for dissertation analysis.",
@@ -1491,6 +1530,8 @@ def render_explanation(explanation_df, style):
 
 def render_sidebar(condition):
     st.sidebar.title("Study Control")
+    selected_profile_for_pattern = st.session_state.get("profile_selector", profiles["Profile ID"].iloc[0])
+    study_pattern = get_study_pattern(st.session_state.participant_id)
 
     st.sidebar.subheader("Participant")
     id_cols = st.sidebar.columns([1, 1])
@@ -1507,21 +1548,28 @@ def render_sidebar(condition):
 
     st.sidebar.divider()
     st.sidebar.subheader("Explanation Mode")
-    condition_disabled = st.session_state.submitted_initial
+    condition_disabled = True
     st.sidebar.radio(
-        "Explanation condition",
+        "Assigned explanation condition",
         ["Static", "Adaptive"],
         index=0 if condition == "Static" else 1,
         key="condition_radio",
         disabled=condition_disabled,
     )
-    if condition_disabled:
-        st.sidebar.caption("Condition is locked after the initial judgement.")
+    st.sidebar.caption(
+        f"{study_pattern}: {selected_profile_for_pattern} is assigned to {condition}. "
+        "This is locked by the study design."
+    )
 
     with st.sidebar.expander("Mode guide", expanded=False):
         st.write("Static: fixed standard explanation depth.")
         st.write("Adaptive: explanation depth changes using confidence signals.")
         st.caption("All profiles are simulated dataset cases. No real financial data is collected.")
+
+    with st.sidebar.expander("Task order", expanded=False):
+        st.write("Complete the six applicant cases in order from Applicant A to Applicant F.")
+        st.write("The app assigns Static or Adaptive automatically from the participant ID pattern.")
+        st.write("After submitting each evaluation, use Reset current case before moving to the next applicant.")
 
     st.sidebar.divider()
     st.sidebar.subheader("Progress")
@@ -1582,7 +1630,9 @@ initialise_session_state()
 repair_incomplete_explanation_state()
 handle_sidebar_actions()
 
-condition = st.session_state.get("condition_radio", "Static")
+selected_profile_for_condition = st.session_state.get("profile_selector", profiles["Profile ID"].iloc[0])
+condition = get_assigned_condition(st.session_state.participant_id, selected_profile_for_condition)
+st.session_state.condition_radio = condition
 render_sidebar(condition)
 
 if not st.session_state.consent_accepted:
@@ -1623,7 +1673,10 @@ st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
 
 with st.container():
     render_step_header("Step 1", "Review Applicant Profile")
-    render_helper_text("Review the applicant information first. The AI prediction is intentionally hidden until after your initial judgement.")
+    render_helper_text(
+        "Complete the applicant cases in order from A to F. The explanation mode is assigned automatically "
+        "from your participant ID, so review the applicant information first and make your own judgement before seeing the AI prediction."
+    )
 
     selected_profile_id = st.selectbox(
         "Select applicant profile",
@@ -1644,7 +1697,7 @@ with st.container():
     with case_col:
         render_metric("Applicant case", selected_profile_id)
         render_action_spacer()
-        render_metric("Case source", "Dataset profile")
+        render_metric("Assigned mode", condition)
         render_action_spacer()
         render_metric("Decision stage", "Human review")
 
@@ -1655,7 +1708,7 @@ with st.container():
 
 with st.container():
     render_step_header("Step 2", "Your Initial Judgement")
-    render_helper_text("Record your own decision before seeing the model output. The selected explanation condition will lock at submission.")
+    render_helper_text("Record your own decision before seeing the model output. The assigned explanation condition is fixed by the study design.")
     judgement_col, confidence_col, action_col = st.columns([1.2, 1.5, 1])
     judgement_locked = st.session_state.submitted_initial
     prediction_options = ["Good Credit", "Bad Credit"]
@@ -1907,7 +1960,7 @@ if st.session_state.explanation_generated:
 
 if st.session_state.explanation_generated:
     render_step_header("Step 5", "Evaluation")
-    render_helper_text("Submit once for this case. Use Reset current case or choose another profile to start a new interaction.")
+    render_helper_text("Submit once for this case. After submission, use Reset current case before moving to the next applicant case in order.")
 
     eval_cols = st.columns(2)
     with eval_cols[0]:

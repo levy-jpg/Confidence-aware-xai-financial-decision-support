@@ -29,6 +29,13 @@ The study compares two explanation conditions:
 - Static: shows a fixed standard explanation with four local features.
 - Adaptive: changes the explanation depth and presentation style using confidence signals.
 
+Each participant completes six applicant cases. To balance order effects, the app assigns the explanation condition automatically from the participant ID:
+
+- Pattern A for odd participant IDs: Applicant A Static, B Adaptive, C Static, D Adaptive, E Static, F Adaptive.
+- Pattern B for even participant IDs: Applicant A Adaptive, B Static, C Adaptive, D Static, E Adaptive, F Static.
+
+This prevents participants from accidentally selecting the wrong condition during the study while still preserving the Static-vs-Adaptive comparison.
+
 Adaptive explanation depth:
 
 - Low confidence: detailed explanation with more local factors and additional guidance.
@@ -68,6 +75,8 @@ Key response fields include:
 - explanation depth
 - trust, understanding, usefulness, and reliance ratings
 - optional comments
+
+If a participant produces an invalid row, for example by testing the app or not following the required procedure, the analysis dashboard can delete selected individual rows from the Raw Data tab. The CSV is backed up automatically before deletion.
 
 ## Analysis Approach
 

@@ -26,6 +26,7 @@ REQUIRED_FILES = [
     "notebooks/MSc_Project_Applicant_Profiles.ipynb",
     "notebooks/MSc_Project_Confidence_Aware_Adaptive_XAI_for_Financial_Decision_Support.ipynb",
     "docs/methodology_notes.md",
+    "docs/study_design_summary.md",
 ]
 
 RESPONSE_COLUMNS = [
