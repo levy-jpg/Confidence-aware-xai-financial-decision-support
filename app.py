@@ -903,6 +903,26 @@ def get_assigned_condition(participant_id, profile_id):
     return pattern.get(case_letter, "Static")
 
 
+def get_next_applicant_profile_id(current_profile_id):
+    """Return the next applicant profile in the A-F study order."""
+    profile_ids = profiles["Profile ID"].tolist()
+    if current_profile_id not in profile_ids:
+        return profile_ids[0], False
+
+    current_index = profile_ids.index(current_profile_id)
+    next_index = current_index + 1
+    if next_index >= len(profile_ids):
+        return None, True
+    return profile_ids[next_index], False
+
+
+def apply_pending_profile_selection():
+    """Apply a queued profile change before the selectbox widget is rendered."""
+    pending_profile_id = st.session_state.pop("pending_profile_id", None)
+    if pending_profile_id:
+        st.session_state.profile_selector = pending_profile_id
+
+
 def get_adaptive_depth(confidence_level):
     """Map confidence level to explanation depth and presentation style."""
     if confidence_level == "low":
@@ -1569,7 +1589,7 @@ def render_sidebar(condition):
     with st.sidebar.expander("Task order", expanded=False):
         st.write("Complete the six applicant cases in order from Applicant A to Applicant F.")
         st.write("The app assigns Static or Adaptive automatically from the participant ID pattern.")
-        st.write("After submitting each evaluation, use Reset current case before moving to the next applicant.")
+        st.write("After submitting each evaluation, use the continue button to move to the next applicant.")
 
     st.sidebar.divider()
     st.sidebar.subheader("Progress")
@@ -1629,6 +1649,7 @@ def render_sidebar(condition):
 initialise_session_state()
 repair_incomplete_explanation_state()
 handle_sidebar_actions()
+apply_pending_profile_selection()
 
 selected_profile_for_condition = st.session_state.get("profile_selector", profiles["Profile ID"].iloc[0])
 condition = get_assigned_condition(st.session_state.participant_id, selected_profile_for_condition)
@@ -1960,7 +1981,7 @@ if st.session_state.explanation_generated:
 
 if st.session_state.explanation_generated:
     render_step_header("Step 5", "Evaluation")
-    render_helper_text("Submit once for this case. After submission, use Reset current case before moving to the next applicant case in order.")
+    render_helper_text("Submit once for this case. After submission, use the continue button to move to the next assigned applicant case.")
 
     eval_cols = st.columns(2)
     with eval_cols[0]:
@@ -2023,8 +2044,29 @@ if st.session_state.explanation_generated:
         with st.container(border=True):
             st.markdown("**Thank you. Response saved.**")
             st.write("This case is complete and has been added to the study response file.")
-            next_cols = st.columns(2)
-            with next_cols[0]:
-                st.caption("Next case: choose another applicant profile from Step 1.")
-            with next_cols[1]:
-                st.caption("Restart this case: use Reset current case in the sidebar.")
+            next_profile_id, study_complete = get_next_applicant_profile_id(
+                st.session_state.selected_profile_id
+            )
+
+            if study_complete:
+                st.success("All six applicant cases are complete for this participant.")
+                st.caption("Use Start new participant in the sidebar when the next participant begins.")
+            else:
+                next_condition = get_assigned_condition(
+                    st.session_state.participant_id,
+                    next_profile_id,
+                )
+                st.caption(
+                    f"Next case: {next_profile_id}, assigned to {next_condition}."
+                )
+                if st.button(
+                    f"Continue to {next_profile_id}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    st.session_state.pending_profile_id = next_profile_id
+                    reset_case_state()
+                    if hasattr(st, "rerun"):
+                        st.rerun()
+                    else:
+                        st.experimental_rerun()

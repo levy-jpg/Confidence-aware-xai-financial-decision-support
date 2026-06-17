@@ -53,7 +53,7 @@ This balances the order effect so some participants begin with Static and others
 
 For each applicant case, the participant should:
 
-1. Select the next applicant case in order.
+1. Start with the next applicant case in order.
 2. Review the applicant profile.
 3. Make an initial Good Credit or Bad Credit judgement.
 4. Rate their confidence.
@@ -64,7 +64,7 @@ For each applicant case, the participant should:
 9. Complete the evaluation ratings for trust, understanding, usefulness, and reliance.
 10. Add an optional comment.
 11. Submit the evaluation.
-12. Use Reset current case before moving to the next applicant case.
+12. Use the continue button to move to the next applicant case.
 
 ## Neutral Participant Script
 
