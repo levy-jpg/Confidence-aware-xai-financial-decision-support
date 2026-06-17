@@ -2056,8 +2056,8 @@ if st.session_state.explanation_generated:
             )
 
             if study_complete:
-                st.success("All six applicant cases are complete for this participant.")
-                st.caption("Use Start new participant in the sidebar when the next participant begins.")
+                st.success("All six applicant cases are complete for.")
+                st.caption("Start new participant in the sidebar when the next participant begins.")
             else:
                 next_condition = get_assigned_condition(
                     st.session_state.participant_id,
