@@ -715,6 +715,7 @@ def initialise_session_state():
     defaults = {
         "session_id": datetime.now().strftime("%Y%m%d-%H%M%S"),
         "participant_id": None,
+        "active_participant_id": None,
         "consent_accepted": False,
         "start_time": time.time(),
         "interaction_count": 0,
@@ -736,8 +737,13 @@ def initialise_session_state():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    if st.session_state.participant_id is None or not str(st.session_state.participant_id).strip():
+    if st.session_state.active_participant_id:
+        st.session_state.participant_id = st.session_state.active_participant_id
+    elif st.session_state.participant_id is None or not str(st.session_state.participant_id).strip():
         st.session_state.participant_id = get_current_participant_id()
+        st.session_state.active_participant_id = st.session_state.participant_id
+    else:
+        st.session_state.active_participant_id = st.session_state.participant_id
 
 
 def reset_case_state():
@@ -761,10 +767,11 @@ def reset_case_state():
 
 def start_new_participant():
     """Assign a new participant ID and restart the study flow."""
-    current_participant_id = st.session_state.get("participant_id", "")
+    current_participant_id = st.session_state.get("active_participant_id") or st.session_state.get("participant_id", "")
     reset_case_state()
     st.session_state.session_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     st.session_state.participant_id = get_next_participant_id(current_participant_id=current_participant_id)
+    st.session_state.active_participant_id = st.session_state.participant_id
     st.session_state.consent_accepted = False
     if "consent_checkbox" in st.session_state:
         st.session_state.consent_checkbox = False
@@ -2011,10 +2018,15 @@ if st.session_state.explanation_generated:
         user_agreed_with_ai = st.session_state.user_prediction == st.session_state.ai_prediction
         explanation_reading_time = round(time.time() - st.session_state.explanation_display_time, 2)
         st.session_state.explanation_reading_time = explanation_reading_time
+        participant_id_for_response = (
+            st.session_state.get("active_participant_id")
+            or st.session_state.get("participant_id")
+            or get_current_participant_id()
+        )
         response = {
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "session_id": st.session_state.session_id,
-            "participant_id": st.session_state.participant_id.strip(),
+            "participant_id": str(participant_id_for_response).strip(),
             "profile_id": st.session_state.selected_profile_id,
             "dataset_index": st.session_state.sample_index,
             "profile_type": selected_profile["Profile Type"],
