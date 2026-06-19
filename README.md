@@ -151,7 +151,16 @@ For a visual dashboard, run:
 streamlit run scripts/analysis_dashboard.py
 ```
 
-The dashboard plots condition-level ratings, explanation depth, AI agreement, raw responses, and Static-vs-Adaptive comparison statistics including mean differences, bootstrapped confidence intervals, Cohen's d, and Mann-Whitney p-values.
+The dashboard supports the results chapter by showing:
+
+- response counts, participant completion, and applicant-condition coverage
+- mean trust, understanding, usefulness, and reliance by condition
+- Likert rating distributions and rating spread by condition
+- Static-vs-Adaptive comparison statistics, including mean differences, bootstrapped confidence intervals, Cohen's d, and Mann-Whitney p-values
+- interaction timing, explanation depth, adaptation signals, and confidence alignment
+- reliance patterns depending on whether participants agreed with the AI prediction
+- comment counts, frequent comment terms, and a comment review table
+- downloadable comparison tables and filtered raw responses
 
 The dashboard also includes an admin-only section under Raw Data for deleting invalid individual response rows. A full CSV backup is saved before any row deletion.
 

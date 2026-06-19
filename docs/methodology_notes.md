@@ -85,13 +85,19 @@ The analysis dashboard provides descriptive and comparative outputs for the resu
 Recommended reporting:
 
 - response counts by condition
+- participant completion checks
+- applicant-condition coverage
 - mean trust, understanding, usefulness, and reliance by condition
+- Likert rating distributions
 - explanation depth by condition
 - AI agreement rate by condition
+- reliance by AI agreement
+- predicted versus self-reported confidence alignment
 - Static-vs-Adaptive mean differences
 - bootstrapped confidence intervals
 - Cohen's d effect sizes
 - Mann-Whitney p-values for small ordinal rating samples
+- comment counts and common comment terms
 
 Statistical outputs should be interpreted cautiously if the study sample is small. The main academic value is the comparison of user experience and reliance patterns between static and adaptive explanation presentations.
 
