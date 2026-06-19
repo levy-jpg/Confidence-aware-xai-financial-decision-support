@@ -127,6 +127,18 @@ Screenshots are stored in `docs/screenshots/` to show the participant workflow a
 
 ![Sidebar reset and response export controls](docs/screenshots/sidebar-reset-export.png)
 
+### Analysis Dashboard
+
+The separate analysis dashboard supports review of completed study responses, condition balance, rating patterns, comparison statistics, and raw-response administration.
+
+![Analysis dashboard overview](docs/screenshots/analysis-dashboard/overview.png)
+
+![Analysis dashboard ratings page](docs/screenshots/analysis-dashboard/ratings-page.png)
+
+![Static versus adaptive comparison dashboard](docs/screenshots/analysis-dashboard/static-vs-adaptive-page.png)
+
+![Raw response administration page](docs/screenshots/analysis-dashboard/raw-data-page.png)
+
 ## Smoke Test
 
 ```bash

@@ -443,13 +443,27 @@ with tab_ratings:
         )
         metric_summary_long["Metric"] = metric_summary_long["Metric"].map(display_label)
         mean_chart = alt.Chart(metric_summary_long).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-            x=alt.X("Metric:N", title="Evaluation metric"),
-            y=alt.Y("Mean rating:Q", scale=alt.Scale(domain=[1, 5])),
+            x=alt.X(
+                "Metric:N",
+                title=None,
+                axis=alt.Axis(labelAngle=0, labelLimit=180, labelOverlap=False),
+            ),
+            y=alt.Y("Mean rating:Q", title="Mean rating", scale=alt.Scale(domain=[0, 5])),
             color=alt.Color("condition:N", title="Condition"),
             xOffset="condition:N",
             tooltip=["condition", "Metric", "Mean rating"],
         )
-        st.altair_chart(mean_chart, use_container_width=True)
+        mean_labels = alt.Chart(metric_summary_long).mark_text(
+            dy=-6,
+            fontWeight="bold",
+            color="#94a3b8",
+        ).encode(
+            x=alt.X("Metric:N", axis=alt.Axis(labelAngle=0, labelLimit=180, labelOverlap=False)),
+            y=alt.Y("Mean rating:Q", scale=alt.Scale(domain=[0, 5])),
+            xOffset="condition:N",
+            text=alt.Text("Mean rating:Q", format=".2f"),
+        )
+        st.altair_chart((mean_chart + mean_labels).properties(height=340), use_container_width=True)
 
         st.subheader("Likert Rating Distribution")
         long_ratings = make_long_ratings(filtered)
@@ -468,14 +482,30 @@ with tab_ratings:
         st.altair_chart(likert_chart, use_container_width=True)
 
         st.subheader("Rating Spread by Condition")
-        box_chart = alt.Chart(long_ratings).mark_boxplot(extent="min-max").encode(
-            x=alt.X("condition:N", title="Condition"),
-            y=alt.Y("Rating:Q", scale=alt.Scale(domain=[1, 5])),
-            color=alt.Color("condition:N", legend=None),
-            column=alt.Column("Metric:N", title=None),
-            tooltip=["Metric", "condition", "Rating"],
-        ).properties(width=150)
-        st.altair_chart(box_chart, use_container_width=True)
+        spread_heatmap = alt.Chart(likert_counts).mark_rect(cornerRadius=2).encode(
+            x=alt.X("Rating:O", title="Rating (1-5)", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Metric:N", title=None, axis=alt.Axis(labelAngle=0)),
+            color=alt.Color("Responses:Q", scale=alt.Scale(scheme="oranges"), title="Responses"),
+            tooltip=["condition", "Metric", "Rating", "Responses"],
+        )
+        spread_text = alt.Chart(likert_counts).mark_text(fontWeight="bold").encode(
+            x=alt.X("Rating:O", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Metric:N", axis=alt.Axis(labelAngle=0)),
+            text="Responses:Q",
+            color=alt.condition(
+                alt.datum.Responses >= 4,
+                alt.value("white"),
+                alt.value("#111827"),
+            ),
+        )
+        st.altair_chart(
+            (spread_heatmap + spread_text)
+            .properties(height=150)
+            .facet(row=alt.Row("condition:N", title=None, header=alt.Header(labelAngle=0)))
+            ,
+            use_container_width=True,
+        )
+        st.caption("This shows how many responses selected each rating value.")
 
         st.subheader("Descriptive Rating Table")
         st.dataframe(summarise_by_condition(filtered, available_metrics), use_container_width=True)
@@ -532,10 +562,7 @@ with tab_comparison:
             st.write(
                 f"Largest observed mean difference: **{strongest_metric['Metric']}** "
                 f"({strongest_metric['Mean difference']} points, Adaptive minus Static)."
-            )
-            st.write(
-                "Use this table as descriptive support for the results chapter, then discuss sample size and "
-                "the exploratory nature of the inferential tests."
+           
             )
             st.download_button(
                 "Download comparison table",
@@ -584,6 +611,7 @@ with tab_behaviour:
         signal_df[selected_signal] = pd.to_numeric(signal_df[selected_signal], errors="coerce")
         signal_df = signal_df.dropna(subset=[selected_signal])
         signal_df["Display value"] = signal_df[selected_signal]
+        signal_has_variation = signal_df[selected_signal].nunique() > 1
 
         cap_value = np.nan
         if selected_signal in SECOND_METRICS and not signal_df.empty:
@@ -599,35 +627,44 @@ with tab_behaviour:
                 hide_index=True,
             )
         with signal_cols[1]:
-            box_chart = alt.Chart(signal_df).mark_boxplot(extent="min-max", size=55).encode(
-                x=alt.X("condition:N", title="Condition"),
-                y=alt.Y("Display value:Q", title=display_label(selected_signal)),
-                color=alt.Color("condition:N", legend=None),
-                tooltip=[
-                    alt.Tooltip("condition:N", title="Condition"),
-                    alt.Tooltip(f"{selected_signal}:Q", title=display_label(selected_signal), format=".2f"),
-                ],
-            )
-            st.altair_chart(box_chart, use_container_width=True)
-            histogram_chart = alt.Chart(signal_df).mark_bar(
-                opacity=0.85,
-                cornerRadiusTopLeft=2,
-                cornerRadiusTopRight=2,
-            ).encode(
-                x=alt.X(
-                    "Display value:Q",
-                    bin=alt.Bin(maxbins=16),
-                    title=display_label(selected_signal),
-                ),
-                y=alt.Y("count():Q", title="Responses"),
-                color=alt.Color("condition:N", title="Condition"),
-                row=alt.Row("condition:N", title=None),
-                tooltip=[
-                    alt.Tooltip("condition:N", title="Condition"),
-                    alt.Tooltip("count():Q", title="Responses"),
-                ],
-            ).properties(height=90)
-            st.altair_chart(histogram_chart, use_container_width=True)
+            if signal_df.empty:
+                st.info("No values are available for this signal in the selected filters.")
+            elif not signal_has_variation:
+                constant_value = signal_df[selected_signal].iloc[0]
+                st.metric(display_label(selected_signal), f"{constant_value:.2f}")
+                st.info(
+                    "This signal has the same value for every selected response, so a distribution chart would be visually empty."
+                )
+            else:
+                box_chart = alt.Chart(signal_df).mark_boxplot(extent="min-max", size=55).encode(
+                    x=alt.X("condition:N", title="Condition", axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Display value:Q", title=display_label(selected_signal)),
+                    color=alt.Color("condition:N", legend=None),
+                    tooltip=[
+                        alt.Tooltip("condition:N", title="Condition"),
+                        alt.Tooltip(f"{selected_signal}:Q", title=display_label(selected_signal), format=".2f"),
+                    ],
+                )
+                st.altair_chart(box_chart, use_container_width=True)
+                histogram_chart = alt.Chart(signal_df).mark_bar(
+                    opacity=0.85,
+                    cornerRadiusTopLeft=2,
+                    cornerRadiusTopRight=2,
+                ).encode(
+                    x=alt.X(
+                        "Display value:Q",
+                        bin=alt.Bin(maxbins=16),
+                        title=display_label(selected_signal),
+                    ),
+                    y=alt.Y("count():Q", title="Responses"),
+                    color=alt.Color("condition:N", title="Condition"),
+                    row=alt.Row("condition:N", title=None, header=alt.Header(labelAngle=0)),
+                    tooltip=[
+                        alt.Tooltip("condition:N", title="Condition"),
+                        alt.Tooltip("count():Q", title="Responses"),
+                    ],
+                ).properties(height=90)
+                st.altair_chart(histogram_chart, use_container_width=True)
 
         if selected_signal in SECOND_METRICS and pd.notna(cap_value):
             max_value = signal_df[selected_signal].max()
@@ -708,14 +745,34 @@ with tab_behaviour:
             True: "Agreed",
             False: "Disagreed",
         })
-        reliance_chart = alt.Chart(reliance_summary).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-            x=alt.X("Agreement with AI:N"),
-            y=alt.Y("Mean reliance:Q", scale=alt.Scale(domain=[1, 5])),
+        reliance_chart = alt.Chart(reliance_summary).mark_bar(
+            cornerRadiusTopLeft=3,
+            cornerRadiusTopRight=3,
+        ).encode(
+            x=alt.X(
+                "Agreement with AI:N",
+                title=None,
+                axis=alt.Axis(labelAngle=0, labelLimit=160, labelOverlap=False),
+            ),
+            y=alt.Y("Mean reliance:Q", title="Mean reliance", scale=alt.Scale(domain=[0, 5])),
             color=alt.Color("condition:N", title="Condition"),
             xOffset="condition:N",
             tooltip=["condition", "Agreement with AI", "Mean reliance"],
         )
-        st.altair_chart(reliance_chart, use_container_width=True)
+        reliance_labels = alt.Chart(reliance_summary).mark_text(
+            dy=-6,
+            fontWeight="bold",
+            color="#94a3b8",
+        ).encode(
+            x=alt.X(
+                "Agreement with AI:N",
+                axis=alt.Axis(labelAngle=0, labelLimit=160, labelOverlap=False),
+            ),
+            y=alt.Y("Mean reliance:Q", scale=alt.Scale(domain=[0, 5])),
+            xOffset="condition:N",
+            text=alt.Text("Mean reliance:Q", format=".2f"),
+        )
+        st.altair_chart((reliance_chart + reliance_labels).properties(height=320), use_container_width=True)
 
 with tab_comments:
     st.subheader("Participant Comments")
