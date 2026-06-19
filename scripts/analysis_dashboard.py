@@ -30,6 +30,28 @@ TIMING_METRICS = [
     "explanation_reading_time",
     "interaction_count",
 ]
+DISPLAY_LABELS = {
+    "trust": "Trust",
+    "understanding": "Understanding",
+    "usefulness": "Usefulness",
+    "reliance": "Reliance",
+    "decision_time": "Initial decision time (seconds)",
+    "ai_prediction_review_time": "AI prediction review time (seconds)",
+    "explanation_reading_time": "Explanation reading time (seconds)",
+    "explanation_view_time": "Explanation reading time (seconds)",
+    "interaction_count": "Interaction count",
+    "confidence_scroll_depth_proxy": "Review depth proxy",
+    "confidence_hover_count_proxy": "Review confirmation proxy",
+    "top_features_shown": "Top features shown",
+    "probability_bad_credit": "Bad-credit probability",
+    "user_confidence": "Self-reported confidence",
+}
+SECOND_METRICS = {
+    "decision_time",
+    "ai_prediction_review_time",
+    "explanation_reading_time",
+    "explanation_view_time",
+}
 CONFIDENCE_ORDER = ["low", "medium", "high"]
 STOPWORDS = {
     "the", "and", "was", "were", "that", "this", "with", "for", "from",
@@ -38,6 +60,11 @@ STOPWORDS = {
     "useful", "helped", "understand", "understanding", "would", "could",
     "should", "applicant", "details", "feature", "features",
 }
+
+
+def display_label(column):
+    """Return a reader-friendly label for dashboard columns."""
+    return DISPLAY_LABELS.get(column, column.replace("_", " ").title())
 
 
 def load_responses():
@@ -132,7 +159,7 @@ def compare_static_adaptive(filtered, metrics):
             ).pvalue
 
         rows.append({
-            "Metric": metric,
+            "Metric": display_label(metric),
             "Static n": len(static_values),
             "Adaptive n": len(adaptive_values),
             "Static mean": round(static_values.mean(), 2),
@@ -164,7 +191,9 @@ def make_long_ratings(dataframe):
         value_vars=available_metrics,
         var_name="Metric",
         value_name="Rating",
-    ).dropna(subset=["Rating"])
+    ).dropna(subset=["Rating"]).assign(
+        Metric=lambda frame: frame["Metric"].map(display_label)
+    )
 
 
 def summarise_by_condition(dataframe, metrics):
@@ -177,7 +206,7 @@ def summarise_by_condition(dataframe, metrics):
                 continue
             rows.append({
                 "Condition": condition,
-                "Metric": metric,
+                "Metric": display_label(metric),
                 "n": len(values),
                 "Mean": round(values.mean(), 2),
                 "Median": round(values.median(), 2),
@@ -185,6 +214,25 @@ def summarise_by_condition(dataframe, metrics):
                 "Min": round(values.min(), 2),
                 "Max": round(values.max(), 2),
             })
+    return pd.DataFrame(rows)
+
+
+def summarise_selected_signal(dataframe, signal):
+    """Summarise one interaction signal with clearer columns for dashboard display."""
+    rows = []
+    for condition, condition_rows in dataframe.groupby("condition"):
+        values = condition_rows[signal].dropna().astype(float)
+        if values.empty:
+            continue
+        rows.append({
+            "Condition": condition,
+            "n": len(values),
+            "Mean": round(values.mean(), 2),
+            "Median": round(values.median(), 2),
+            "SD": round(values.std(ddof=1), 2) if len(values) > 1 else 0.0,
+            "Min": round(values.min(), 2),
+            "Max": round(values.max(), 2),
+        })
     return pd.DataFrame(rows)
 
 
@@ -393,6 +441,7 @@ with tab_ratings:
             .reset_index()
             .melt(id_vars="condition", var_name="Metric", value_name="Mean rating")
         )
+        metric_summary_long["Metric"] = metric_summary_long["Metric"].map(display_label)
         mean_chart = alt.Chart(metric_summary_long).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
             x=alt.X("Metric:N", title="Evaluation metric"),
             y=alt.Y("Mean rating:Q", scale=alt.Scale(domain=[1, 5])),
@@ -464,13 +513,19 @@ with tab_comparison:
             zero_rule = alt.Chart(pd.DataFrame({"Mean difference": [0]})).mark_rule(color="#64748b").encode(
                 y="Mean difference:Q"
             )
-            st.altair_chart((diff_chart + zero_rule), use_container_width=True)
+            error_bars = alt.Chart(comparison_table).mark_errorbar(ticks=True).encode(
+                x=alt.X("Metric:N", title="Evaluation metric"),
+                y=alt.Y("95% CI lower:Q", title="Adaptive minus Static"),
+                y2="95% CI upper:Q",
+                tooltip=["Metric", "95% CI lower", "95% CI upper"],
+            )
+            st.altair_chart((diff_chart + error_bars + zero_rule), use_container_width=True)
             st.caption(
                 "Mean difference is Adaptive minus Static. Confidence intervals are bootstrapped. "
                 "Mann-Whitney p-values are suitable for small ordinal rating samples, but should be interpreted cautiously."
             )
 
-            st.subheader("Result Notes for Report")
+            st.subheader("Interpretation Notes")
             strongest_metric = comparison_table.iloc[
                 comparison_table["Mean difference"].abs().idxmax()
             ]
@@ -517,22 +572,98 @@ with tab_behaviour:
     ]
     if timing_cols:
         st.subheader("Interaction Signals by Condition")
-        timing_summary = filtered.groupby("condition")[timing_cols].mean().round(2)
-        st.dataframe(timing_summary, use_container_width=True)
-        timing_long = filtered.melt(
-            id_vars=["condition"],
-            value_vars=timing_cols,
-            var_name="Signal",
-            value_name="Value",
-        ).dropna()
-        timing_chart = alt.Chart(timing_long).mark_boxplot(extent="min-max").encode(
-            x=alt.X("condition:N", title="Condition"),
-            y=alt.Y("Value:Q"),
-            color=alt.Color("condition:N", legend=None),
-            column=alt.Column("Signal:N", title=None),
-            tooltip=["condition", "Signal", "Value"],
-        ).properties(width=150)
-        st.altair_chart(timing_chart, use_container_width=True)
+        selected_signal = st.selectbox(
+            "Choose interaction signal",
+            timing_cols,
+            index=timing_cols.index("ai_prediction_review_time")
+            if "ai_prediction_review_time" in timing_cols else 0,
+            format_func=display_label,
+        )
+
+        signal_df = filtered[["condition", selected_signal]].dropna().copy()
+        signal_df[selected_signal] = pd.to_numeric(signal_df[selected_signal], errors="coerce")
+        signal_df = signal_df.dropna(subset=[selected_signal])
+        signal_df["Display value"] = signal_df[selected_signal]
+
+        cap_value = np.nan
+        if selected_signal in SECOND_METRICS and not signal_df.empty:
+            cap_value = signal_df[selected_signal].quantile(0.95)
+            if pd.notna(cap_value) and cap_value > 0:
+                signal_df["Display value"] = signal_df[selected_signal].clip(upper=cap_value)
+
+        signal_cols = st.columns([1, 2])
+        with signal_cols[0]:
+            st.dataframe(
+                summarise_selected_signal(filtered, selected_signal),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with signal_cols[1]:
+            box_chart = alt.Chart(signal_df).mark_boxplot(extent="min-max", size=55).encode(
+                x=alt.X("condition:N", title="Condition"),
+                y=alt.Y("Display value:Q", title=display_label(selected_signal)),
+                color=alt.Color("condition:N", legend=None),
+                tooltip=[
+                    alt.Tooltip("condition:N", title="Condition"),
+                    alt.Tooltip(f"{selected_signal}:Q", title=display_label(selected_signal), format=".2f"),
+                ],
+            )
+            st.altair_chart(box_chart, use_container_width=True)
+            histogram_chart = alt.Chart(signal_df).mark_bar(
+                opacity=0.85,
+                cornerRadiusTopLeft=2,
+                cornerRadiusTopRight=2,
+            ).encode(
+                x=alt.X(
+                    "Display value:Q",
+                    bin=alt.Bin(maxbins=16),
+                    title=display_label(selected_signal),
+                ),
+                y=alt.Y("count():Q", title="Responses"),
+                color=alt.Color("condition:N", title="Condition"),
+                row=alt.Row("condition:N", title=None),
+                tooltip=[
+                    alt.Tooltip("condition:N", title="Condition"),
+                    alt.Tooltip("count():Q", title="Responses"),
+                ],
+            ).properties(height=90)
+            st.altair_chart(histogram_chart, use_container_width=True)
+
+        if selected_signal in SECOND_METRICS and pd.notna(cap_value):
+            max_value = signal_df[selected_signal].max()
+            if max_value > cap_value:
+                st.caption(
+                    f"Visual capped at the 95th percentile ({cap_value:.2f} seconds) so a long pause "
+                    "does not flatten the chart. The summary table keeps the raw values."
+                )
+
+        timing_summary = summarise_by_condition(filtered, timing_cols)
+        timing_summary["Signal"] = timing_summary["Metric"]
+        max_mean_by_signal = timing_summary.groupby("Signal")["Mean"].transform("max")
+        timing_summary["Relative mean"] = np.where(
+            max_mean_by_signal > 0,
+            timing_summary["Mean"] / max_mean_by_signal * 100,
+            0,
+        )
+        timing_summary_chart = alt.Chart(timing_summary).mark_bar(
+            cornerRadiusTopLeft=3,
+            cornerRadiusTopRight=3,
+        ).encode(
+            x=alt.X(
+                "Relative mean:Q",
+                title="Relative mean within each signal",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
+            y=alt.Y("Signal:N", title=None, sort="-x"),
+            color=alt.Color("Condition:N"),
+            row=alt.Row("Condition:N", title=None),
+            tooltip=["Condition", "Signal", "Mean", "Median", "SD", "Relative mean"],
+        ).properties(height=120)
+        st.altair_chart(timing_summary_chart, use_container_width=True)
+        st.caption(
+            "The selected signal chart uses its own scale. The summary bars give a quick overview of all "
+            "available behavioural signals by comparing each condition against the largest mean for that signal."
+        )
 
     if "adaptation_signal" in filtered.columns:
         st.subheader("Adaptation Signals")
